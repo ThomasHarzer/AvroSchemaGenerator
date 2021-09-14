@@ -38,7 +38,7 @@ using static Nuke.Common.Tools.DotNet.DotNetTasks;
 [GitHubActions("PublishBeta",
     GitHubActionsImage.UbuntuLatest,
     AutoGenerate = true,
-    OnPushBranches = new[] { "dev" },
+    OnPushBranches = new[] { "beta_branch" },
     InvokedTargets = new[] { nameof(PushBeta) })]
 
 [GitHubActions("Publish",
