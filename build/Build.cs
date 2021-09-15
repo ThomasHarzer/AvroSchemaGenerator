@@ -100,13 +100,23 @@ class Build : NukeBuild
             DotNetBuild(s => s
                 .SetProjectFile(Solution)
                 .SetConfiguration(Configuration)
-                .SetAssemblyVersion("2.3.2")
-                .SetFileVersion("2.3.2")
-                .SetVersion("2.3.2")
+                .SetAssemblyVersion(GetVersion())
+                .SetFileVersion(GetVersion())
                 //.SetInformationalVersion("1.9.0")
                 .EnableNoRestore());
         });
-
+    Target BetaCompile => _ => _
+        .DependsOn(Restore)
+        .Executes(() =>
+        {
+            DotNetBuild(s => s
+                .SetProjectFile(Solution)
+                .SetConfiguration(Configuration)
+                .SetAssemblyVersion($"{GetVersion()}-beta")
+                .SetFileVersion($"{GetVersion()}-beta")
+                //.SetInformationalVersion("1.9.0")
+                .EnableNoRestore());
+        });
     Target Test => _ => _
         .DependsOn(Compile)
         .Executes(() =>
@@ -129,6 +139,28 @@ class Build : NukeBuild
             }
         });
 
+    Target BetaTest => _ => _
+       .DependsOn(BetaCompile)
+       .Executes(() =>
+       {
+           var projectName = "AvroSchemaGenerator.Tests";
+           var project = Solution.GetProjects("*.Tests").First();
+           Information($"Running tests from {projectName}");
+
+           foreach (var fw in project.GetTargetFrameworks())
+           {
+               Information($"Running for {projectName} ({fw}) ...");
+               DotNetTest(c => c
+                      .SetProjectFile(project)
+                      .SetConfiguration(Configuration.ToString())
+                      .SetFramework(fw)
+                      //.SetDiagnosticsFile(TestsDirectory)
+                      //.SetLogger("trx")
+                      .SetVerbosity(verbosity: DotNetVerbosity.Normal)
+                      .EnableNoBuild());
+           }
+       });
+
     Target Pack => _ => _
       .DependsOn(Test)
       .Executes(() =>
@@ -140,9 +172,8 @@ class Build : NukeBuild
               .EnableNoBuild()
               
               .EnableNoRestore()
-              .SetAssemblyVersion("2.3.2")
-              .SetFileVersion("2.3.2")
-              .SetVersion("2.3.2")
+              .SetAssemblyVersion(GetVersion())
+              .SetVersion(GetVersion())
               .SetPackageReleaseNotes($"Fix wrong file version")
               .SetDescription("Generate Avro Schema with support for RECURSIVE SCHEMA")
               .SetPackageTags("Avro", "Schema Generator")
@@ -152,7 +183,7 @@ class Build : NukeBuild
 
       });
     Target PackBeta => _ => _
-      .DependsOn(Test)
+      .DependsOn(BetaTest)
       .Executes(() =>
       {
           var project = Solution.GetProject("AvroSchemaGenerator");
@@ -161,9 +192,8 @@ class Build : NukeBuild
               .SetConfiguration(Configuration)
               .EnableNoBuild()
               .EnableNoRestore()
-              .SetAssemblyVersion($"2.3.2-beta")
-              .SetFileVersion($"2.3.2-beta")
-              .SetVersionPrefix("2.3.2")
+              .SetAssemblyVersion($"{GetVersion()}-beta")
+              .SetVersionPrefix(GetVersion())
               .SetPackageReleaseNotes($"Fix wrong file version")
               .SetVersionSuffix($"beta")
               .SetDescription("Generate Avro Schema with support for RECURSIVE SCHEMA")
@@ -174,7 +204,6 @@ class Build : NukeBuild
 
       });
     Target Push => _ => _
-      .DependsOn(Test)
       .DependsOn(Pack)
       .Requires(() => NugetApiUrl)
       .Requires(() => !NugetApiKey.IsNullOrEmpty())
@@ -203,7 +232,6 @@ class Build : NukeBuild
               });
       });
     Target PushBeta => _ => _
-      .DependsOn(Test)
       .DependsOn(PackBeta)
       .Requires(() => NugetApiUrl)
       .Requires(() => !NugetApiKey.IsNullOrEmpty())
@@ -235,5 +263,9 @@ class Build : NukeBuild
     static void Information(string info)
     {
         Logger.Info(info);
+    }
+    static string GetVersion()
+    {
+        return "2.3.3";
     }
 }
