@@ -117,21 +117,14 @@ class Build : NukeBuild
             foreach (var fw in project.GetTargetFrameworks())
             {
                 Information($"Running for {projectName} ({fw}) ...");
-                try
-                {
-                    DotNetTest(c => c
-                        .SetProjectFile(project)
-                        .SetConfiguration(Configuration.ToString())
-                        .SetFramework(fw)
-                        //.SetDiagnosticsFile(TestsDirectory)
-                        //.SetLogger("trx")
-                        .SetVerbosity(verbosity: DotNetVerbosity.Normal)
-                        .EnableNoBuild()); ;
-                }
-                catch (Exception ex)
-                {
-                    Information(ex.Message);
-                }
+                DotNetTest(c => c
+                       .SetProjectFile(project)
+                       .SetConfiguration(Configuration.ToString())
+                       .SetFramework(fw)
+                       //.SetDiagnosticsFile(TestsDirectory)
+                       //.SetLogger("trx")
+                       .SetVerbosity(verbosity: DotNetVerbosity.Normal)
+                       .EnableNoBuild());
             }
         });
 
@@ -145,9 +138,9 @@ class Build : NukeBuild
               .SetConfiguration(Configuration)
               .EnableNoBuild()
               .EnableNoRestore()
-              .SetAssemblyVersion("2.2.0")
-              .SetVersionPrefix("2.2.0")
-              .SetPackageReleaseNotes($"[RobertIndie] Add enum type support{Environment.NewLine}Add dictionary(map) type support{Environment.NewLine}Add list(array) type support")
+              .SetAssemblyVersion("2.3.1")
+              .SetVersionPrefix("2.3.1")
+              .SetPackageReleaseNotes($"Fix wrong version in nuget")
               .SetDescription("Generate Avro Schema with support for RECURSIVE SCHEMA")
               .SetPackageTags("Avro", "Schema Generator")
               .AddAuthors("Ebere Abanonu (@mestical)")
@@ -165,10 +158,10 @@ class Build : NukeBuild
               .SetConfiguration(Configuration)
               .EnableNoBuild()
               .EnableNoRestore()
-              .SetAssemblyVersion($"2.2.0-beta.{BuildNumber}")
-              .SetVersionPrefix("2.2.0")
-              .SetPackageReleaseNotes($"[RobertIndie] Add enum type support{Environment.NewLine}Add dictionary(map) type support{Environment.NewLine}Add list(array) type support")
-              .SetVersionSuffix($"beta.{BuildNumber}")
+              .SetAssemblyVersion($"2.3.1-beta")
+              .SetVersionPrefix("2.3.1")
+              .SetPackageReleaseNotes($"Fix wrong version in nuget")
+              .SetVersionSuffix($"beta")
               .SetDescription("Generate Avro Schema with support for RECURSIVE SCHEMA")
               .SetPackageTags("Avro", "Schema Generator")
               .AddAuthors("Ebere Abanonu (@mestical)")
@@ -177,6 +170,7 @@ class Build : NukeBuild
 
       });
     Target Push => _ => _
+      .DependsOn(Test)
       .DependsOn(Pack)
       .Requires(() => NugetApiUrl)
       .Requires(() => !NugetApiKey.IsNullOrEmpty())
@@ -205,6 +199,7 @@ class Build : NukeBuild
               });
       });
     Target PushBeta => _ => _
+      .DependsOn(Test)
       .DependsOn(PackBeta)
       .Requires(() => NugetApiUrl)
       .Requires(() => !NugetApiKey.IsNullOrEmpty())
